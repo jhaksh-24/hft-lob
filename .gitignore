@@ -1,0 +1,13 @@
+# build products
+/build/
+/cmake-build-*/
+/compile_commands.json
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+*.obj
+*.lib
+.DS_Store
+
