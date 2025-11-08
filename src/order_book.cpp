@@ -1,44 +1,132 @@
-#include<memory>
-#include<chrono>
+#include "order_book.h"
+#include <iostream>
+#include <memory>
 
-enum class Side {BUY, SELL};
+//==============================================================================
+// TREE OPERATIONS
+//==============================================================================
 
-struct Order {
-    int  id;
-    int  shares;
-    int  price;
-    Side side;
+/*
+ * FindLimit - Search for a price level in the appropriate tree
+ * 
+ * @param price The limit price to search for
+ * @param side  BUY or SELL (determines which tree to search)
+ * @return Shared pointer to Limit if found, nullptr otherwise
+ */
 
-    auto entryTime; // Type to be corrected
-    auto eventTime; // Type to be corrected
+std::shared_ptr<Limit> Book::FindLimit(int price, Side side) {
+    std::shared_ptr<Limit> searchPtr = (side == BUY ? buyRoot : sellRoot);
 
-    std::weak_ptr<Limit>   parentLimit;
-    std::shared_ptr<Order> nextOrder = nullptr;
-    std::weak_ptr<Order>   prevOrder;
-};
+    while (searchPtr != nullptr) {
+        if (searchPtr -> limitPrice > price) {
+            searchPtr = searchPtr -> leftChild;
+        }
+        else if (searchPtr -> limitPrice < price) {
+            searchPtr = searchPtr -> rightChild;
+        }
+        else {
+            return searchPtr;
+        }
+    } 
+    return nullptr;
+}
 
-struct Limit {
-    int limitPrice;
-    int size;
-    int totalVolume;
+/*
+ * InsertLimit - Create and insert a new price level into the tree
+ * 
+ * @param price The limit price for the new node
+ * @param side  BUY or SELL (determines which tree to insert into)
+ * @return Shared pointer to the newly created Limit
+ */
+std::shared_ptr<Limit> Book::InsertLimit(int price, Side side) {
+    // TODO: Implement tree insertion
+    // Verifing with FindLimit can take time so we gonna check in real time
+    std::shared_ptr<Limit> current = (side == BUY ? buyRoot : sellRoot);
+    std::shared_ptr<Limit> next;
+}
 
-    std::weak_ptr<Limit>   parent;
-    std::shared_ptr<Limit> leftChild = nullptr;
-    std::shared_ptr<Limit> rightChild = nullptr;
-    std::shared_ptr<Order> headOrder = nullptr;
-    std::shared_ptr<Order> tailOrder;
-};
+/*
+ * RemoveLimit - Delete an empty price level from the tree
+ * 
+ * @param limit The Limit node to remove
+ * @param side  BUY or SELL (determines which tree)
+ */
+void Book::RemoveLimit(std::shared_ptr<Limit> limit, Side side) {
+    // TODO: Implement tree deletion
+}
 
-class Book {
-    std::unique_ptr<Limit> buyRoot;
-    std::unique_ptr<Limit> sellRoot;
-    
-    std::weak_ptr<Limit> highestBuy;
-    std::weak_ptr<Limit> lowestSell;
+//==============================================================================
+// ORDER OPERATIONS
+//==============================================================================
 
-    void AddOrder (Order *order) {}
+/*
+ * AddOrder - Add a new order to the book
+ * 
+ * Creates order, finds or creates appropriate Limit, adds to list,
+ * updates index, and attempts matching.
+ * 
+ * @param id     Unique order identifier
+ * @param shares Number of shares
+ * @param price  Limit price
+ * @param side   BUY or SELL
+ */
+void Book::AddOrder(int id, int shares, int price, Side side) {
+    // TODO: Implement order addition
+}
 
-    void RemoveOrder (Order *order) {}
+/*
+ * RemoveOrder - Cancel an existing order
+ * 
+ * @param orderId The ID of the order to remove
+ */
+void Book::RemoveOrder(int orderId) {
+    // TODO: Implement order removal
+}
 
-    void ExecuteOrder (Order *order) {}
+/*
+ * ModifyOrder - Modify an existing order's quantity or price
+ * 
+ * @param orderId   The ID of the order to modify
+ * @param newShares New quantity (must be > 0)
+ * @param newPrice  New limit price
+ */
+void Book::ModifyOrder(int orderId, int newShares, int newPrice) {
+    // TODO: Implement order modification
+}
+
+//==============================================================================
+// MATCHING ENGINE
+//==============================================================================
+
+/*
+ * MatchOrder - Attempt to match an order against the opposite side
+ * 
+ * @param order The incoming order to match
+ */
+void Book::MatchOrder(std::shared_ptr<Order> order) {
+    // TODO: Implement matching logic
+}
+
+/*
+ * ExecuteTrade - Execute a trade between two orders
+ * 
+ * @param buyOrder  The buy side order
+ * @param sellOrder The sell side order
+ * @param quantity  Number of shares to trade
+ */
+void Book::ExecuteTrade(std::shared_ptr<Order> buyOrder, 
+                        std::shared_ptr<Order> sellOrder, 
+                        int quantity) {
+    // TODO: Implement trade execution
+}
+
+//==============================================================================
+// UTILITY FUNCTIONS
+//==============================================================================
+
+/*
+ * PrintBook - Debug function to visualize current order book state
+ */
+void Book::PrintBook() {
+    // TODO: Implement book visualization
 }
