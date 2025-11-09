@@ -8,10 +8,6 @@
 
 /*
  * FindLimit - Search for a price level in the appropriate tree
- * 
- * @param price The limit price to search for
- * @param side  BUY or SELL (determines which tree to search)
- * @return Shared pointer to Limit if found, nullptr otherwise
  */
 
 std::shared_ptr<Limit> Book::FindLimit(int price, Side side) {
@@ -33,10 +29,6 @@ std::shared_ptr<Limit> Book::FindLimit(int price, Side side) {
 
 /*
  * InsertLimit - Create and insert a new price level into the tree
- * 
- * @param price The limit price for the new node
- * @param side  BUY or SELL (determines which tree to insert into)
- * @return Shared pointer to the newly created Limit
  */
 
 std::shared_ptr<Limit> Book::InsertLimit(int price, Side side) {
@@ -103,14 +95,6 @@ void Book::RemoveLimit(std::shared_ptr<Limit> limit, Side side) {
 
 /*
  * AddOrder - Add a new order to the book
- * 
- * Creates order, finds or creates appropriate Limit, adds to list,
- * updates index, and attempts matching.
- * 
- * @param id     Unique order identifier
- * @param shares Number of shares
- * @param price  Limit price
- * @param side   BUY or SELL
  */
 void Book::AddOrder(int id, int shares, int price, Side side) {
 
@@ -149,13 +133,59 @@ void Book::AddOrder(int id, int shares, int price, Side side) {
 
 /*
  * RemoveOrder - Cancel an existing order
- * 
- * @param orderId The ID of the order to remove
  */
 void Book::RemoveOrder(int orderId) {
     // TODO: Implement order removal
-}
+    auto it = orderIndex.find(orderId);
+    if (it == orderIndex.end()) return;
+    auto order = it -> second;
 
+    auto limit = order -> parentLimit.lock();
+    if (!limit) return;
+    auto side = order -> side;
+
+    if (limit -> tailOrder.lock() == order && limit -> headOrder == order) {
+        limit -> headOrder = nullptr;
+        limit -> tailOrder.reset();
+    }
+    else if (limit -> headOrder == order) {
+        limit -> headOrder = order -> nextOrder;
+        if (order -> nextOrder) {
+            order -> nextOrder->prevOrder.reset();
+        }
+    }
+    else if (limit -> tailOrder.lock() == order) {
+        auto prev = order -> prevOrder.lock();
+        if (prev) {
+            prev -> nextOrder = nullptr;
+        }
+        limit -> tailOrder = order -> prevOrder;
+    }    
+    else {
+        auto prev = order -> prevOrder.lock();
+        auto next = order -> nextOrder;
+
+        if (prev) {
+            prev -> nextOrder = next;
+        }
+        if (next) {
+            next -> prevOrder = order -> prevOrder;
+        }
+    }
+    limit -> size--;
+    limit -> totalVolume -= order -> shares;
+
+
+    if (limit -> size == 0) {
+        RemoveLimit(limit, side);
+    }
+
+    orderIndex.erase(orderId);
+
+    order->parentLimit.reset();
+    order->prevOrder.reset();
+    order->nextOrder = nullptr;
+}
 /*
  * ModifyOrder - Modify an existing order's quantity or price
  * 
