@@ -81,12 +81,9 @@ std::shared_ptr<Limit> Book::InsertLimit(int price, Side side) {
 
 /*
  * RemoveLimit - Delete an empty price level from the tree
- * 
- * @param limit The Limit node to remove
- * @param side  BUY or SELL (determines which tree)
  */
 void Book::RemoveLimit(std::shared_ptr<Limit> limit, Side side) {
-    // TODO: Implement tree deletion
+    
 }
 
 //==============================================================================
