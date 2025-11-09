@@ -15,7 +15,7 @@
  */
 
 std::shared_ptr<Limit> Book::FindLimit(int price, Side side) {
-    std::shared_ptr<Limit> searchPtr = (side == BUY ? buyRoot : sellRoot);
+    std::shared_ptr<Limit> searchPtr = (side == Side::BUY ? buyRoot : sellRoot);
 
     while (searchPtr != nullptr) {
         if (searchPtr -> limitPrice > price) {
@@ -38,11 +38,53 @@ std::shared_ptr<Limit> Book::FindLimit(int price, Side side) {
  * @param side  BUY or SELL (determines which tree to insert into)
  * @return Shared pointer to the newly created Limit
  */
+
 std::shared_ptr<Limit> Book::InsertLimit(int price, Side side) {
-    // TODO: Implement tree insertion
-    // Verifing with FindLimit can take time so we gonna check in real time
-    std::shared_ptr<Limit> current = (side == BUY ? buyRoot : sellRoot);
-    std::shared_ptr<Limit> next;
+
+    // Currently using unbalanced tree... will correct it to use red black preferably
+
+    std::shared_ptr<Limit>& root = (side == Side::BUY ? buyRoot : sellRoot);
+
+    auto newLimit = std::make_shared<Limit>();
+    newLimit -> limitPrice = price;
+    newLimit -> size = 0;
+    newLimit -> totalVolume = 0;
+
+    if (root == nullptr) {
+        root = newLimit;
+        return newLimit;
+    }
+
+    std::shared_ptr<Limit> current = root;
+    std::shared_ptr<Limit> parent = nullptr;
+
+    while (current != nullptr) {
+        if (current -> limitPrice > price) {
+            parent = current;
+            current = current -> rightChild;
+        }
+
+        else if (current -> limitPrice < price) {
+            parent = current;
+            current = current -> leftChild;
+        }
+
+        else {
+            return current;
+        }
+    }
+
+    newLimit -> parent = parent;
+    (price < parent -> limitPrice ? parent ->leftChild = newLimit : parent -> rightChild = newLimit);
+
+    if (side == Side::BUY && (highestBuy.expired() || price > highestBuy.lock() -> limitPrice)) {
+        highestBuy = newLimit;
+    }
+
+    if(side == Side::SELL && (lowestSell.expired() || price < lowestSell.lock() -> limitPrice)) {
+        lowestSell = newLimit;
+    }
+    return newLimit;
 }
 
 /*
@@ -71,7 +113,38 @@ void Book::RemoveLimit(std::shared_ptr<Limit> limit, Side side) {
  * @param side   BUY or SELL
  */
 void Book::AddOrder(int id, int shares, int price, Side side) {
-    // TODO: Implement order addition
+
+    auto newOrder = std::make_shared<Order>();
+    newOrder -> id = id;
+    newOrder -> shares = shares;
+    newOrder -> price = price;
+    newOrder -> side = side;
+    newOrder -> entryTime = 0;
+    newOrder -> eventTime = 0;
+
+    auto limit = FindLimit(price, side);
+    if (limit == nullptr) {
+        limit = InsertLimit(price, side);
+    }
+
+    orderIndex[id] = newOrder;
+    newOrder -> parentLimit = limit;
+
+    if (limit -> headOrder == nullptr) {
+        limit -> headOrder = newOrder;
+        limit -> tailOrder = newOrder;
+    }
+    else {
+        auto oldTail = limit->tailOrder.lock();
+        if (oldTail) {
+            oldTail->nextOrder = newOrder;
+            newOrder->prevOrder = oldTail;
+        }
+        limit -> tailOrder = newOrder;
+    }
+
+    limit -> size++;
+    limit -> totalVolume += shares;
 }
 
 /*
@@ -104,7 +177,7 @@ void Book::ModifyOrder(int orderId, int newShares, int newPrice) {
  * @param order The incoming order to match
  */
 void Book::MatchOrder(std::shared_ptr<Order> order) {
-    // TODO: Implement matching logic
+    while (order -> shares != 0)
 }
 
 /*
