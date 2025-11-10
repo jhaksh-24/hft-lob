@@ -145,13 +145,13 @@ void Book::RemoveLimit(std::shared_ptr<Limit> limit, Side side) {
         }
     }
 
-    if (side == Side::BUY && highestBUY.lock() == limit) {
+    if (side == Side::BUY && highestBuy.lock() == limit) {
         if (buyRoot == nullptr)
-            buyRoot.reset();
+            highestBuy.reset();
         else{
             auto it = buyRoot;
             while (it -> rightChild != nullptr) {
-                it = it -> rightChild
+                it = it -> rightChild;
             }
             highestBuy = it;
         }
@@ -204,7 +204,6 @@ void Book::AddOrder(int id, int shares, int price, Side side) {
  * RemoveOrder - Cancel an existing order
  */
 void Book::RemoveOrder(int orderId) {
-    // TODO: Implement order removal
     auto it = orderIndex.find(orderId);
     if (it == orderIndex.end()) return;
     auto order = it -> second;
@@ -263,7 +262,25 @@ void Book::RemoveOrder(int orderId) {
  * @param newPrice  New limit price
  */
 void Book::ModifyOrder(int orderId, int newShares, int newPrice) {
-    // TODO: Implement order modification
+    auto it = orderIndex.find(orderId);
+    if (it == orderIndex.end()) return;
+    auto order = it -> second;
+
+    int oldPrice = order -> price;
+    int oldShares = order -> shares;
+    Side oldSide = order -> side
+
+    if (newPrice != oldPrice || newShares > oldShares) {
+        RemoveOrder(orderId);
+        AddOrder(orderId, newShares, newPrice, oldSide);
+    }
+    else if (newShares < oldShares) {
+        order -> shares = newShares;
+        auto limit = order->parentLimit.lock();
+        if (limit) {
+            limit->totalVolume -= (oldShares - newShares);
+        }
+    }
 }
 
 //==============================================================================
@@ -276,7 +293,7 @@ void Book::ModifyOrder(int orderId, int newShares, int newPrice) {
  * @param order The incoming order to match
  */
 void Book::MatchOrder(std::shared_ptr<Order> order) {
-    while (order -> shares != 0)
+    // TODO: Implement match order
 }
 
 /*
