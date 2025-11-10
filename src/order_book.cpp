@@ -1,4 +1,4 @@
-#include "order_book.h"
+#include "../include/order_book.h"
 #include <iostream>
 #include <memory>
 
@@ -256,10 +256,6 @@ void Book::RemoveOrder(int orderId) {
 }
 /*
  * ModifyOrder - Modify an existing order's quantity or price
- * 
- * @param orderId   The ID of the order to modify
- * @param newShares New quantity (must be > 0)
- * @param newPrice  New limit price
  */
 void Book::ModifyOrder(int orderId, int newShares, int newPrice) {
     auto it = orderIndex.find(orderId);
@@ -268,13 +264,13 @@ void Book::ModifyOrder(int orderId, int newShares, int newPrice) {
 
     int oldPrice = order -> price;
     int oldShares = order -> shares;
-    Side oldSide = order -> side
+    Side oldSide = order -> side;
 
     if (newPrice != oldPrice || newShares > oldShares) {
         RemoveOrder(orderId);
         AddOrder(orderId, newShares, newPrice, oldSide);
     }
-    else if (newShares < oldShares) {
+    if (newShares < oldShares) {
         order -> shares = newShares;
         auto limit = order->parentLimit.lock();
         if (limit) {
@@ -317,5 +313,43 @@ void Book::ExecuteTrade(std::shared_ptr<Order> buyOrder,
  * PrintBook - Debug function to visualize current order book state
  */
 void Book::PrintBook() {
-    // TODO: Implement book visualization
+    std::cout << "=== ORDER BOOK ===" << std::endl;
+
+    std::cout << "SELL SIDE:" << std::endl;
+    PrintSide(sellRoot);
+    std::cout << std::endl;
+
+    std::cout << "BUY SIDE:" << std::endl;
+    PrintSide(buyRoot);
+    std::cout << std::endl;
+
+    auto bestBid = highestBuy.lock();
+    auto bestAsk = lowestSell.lock();
+
+    if (bestBid && bestAsk) {
+        std::cout << "Best Bid: $" << bestBid->limitPrice
+                  << " (" << bestBid->totalVolume << " shares)" << std::endl;
+        std::cout << "Best Ask: $" << bestAsk->limitPrice
+                  << " (" << bestAsk->totalVolume << " shares)" << std::endl;
+        std::cout << "Spread: $" << bestAsk->limitPrice - bestBid->limitPrice << std::endl;
+    } else {
+        std::cout << "Best Bid/Ask not available (book side empty)." << std::endl;
+    }
+
+    std::cout << "==================" << std::endl;
 }
+
+
+/*
+ * PrintSide - Helper function for PrintBook()
+ */
+void Book::PrintSide(std::shared_ptr<Limit> node) {
+    if (!node) return;
+
+    PrintSide(node->leftChild);
+    std::cout << "  $" << node->limitPrice << ": "
+              << node->totalVolume << " shares ("
+              << node->size << " orders)" << std::endl;
+    PrintSide(node->rightChild);
+}
+
