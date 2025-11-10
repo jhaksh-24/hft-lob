@@ -83,7 +83,79 @@ std::shared_ptr<Limit> Book::InsertLimit(int price, Side side) {
  * RemoveLimit - Delete an empty price level from the tree
  */
 void Book::RemoveLimit(std::shared_ptr<Limit> limit, Side side) {
-    
+    // Removing root will be addressed
+    auto parentlimit = limit -> parent.lock();
+
+    if (limit -> leftChild == nullptr && limit -> rightChild == nullptr) {
+        if (parentlimit -> leftChild == limit) {
+            parentlimit -> leftChild = nullptr;
+        }
+        else {
+            parentlimit -> rightChild = nullptr;
+        }
+    }
+    else if (limit -> leftChild == nullptr) {
+        if (parentlimit -> leftChild == limit) {
+            parentlimit -> leftChild = limit -> rightChild;
+        }
+        else {
+            parentlimit -> rightChild = limit -> rightChild;
+        }
+
+        if (limit -> rightChild)
+            limit -> rightChild -> parent = parentlimit;
+    }
+    else if (limit -> rightChild == nullptr) {
+        if (parentlimit -> leftChild == limit) {
+            parentlimit -> leftChild = limit -> leftChild;
+        }
+        else {
+            parentlimit -> rightChild = limit -> leftChild;
+        }
+
+        if (limit -> leftChild)
+            limit -> leftChild -> parent = parentlimit;
+    }
+    else {
+        auto successor = limit -> rightChild;
+        while (successor -> leftChild != nullptr) {
+            successor = successor -> leftChild;
+        }
+
+        limit -> limitPrice = successor -> limitPrice;
+        limit -> size = successor -> size;
+        limit -> totalVolume = successor -> totalVolume;
+        limit -> headOrder = successor -> headOrder;
+        limit -> tailOrder = successor -> tailOrder;
+
+        RemoveLimit(successor, side);
+        return;
+    }
+
+    if (side == Side::SELL && lowestSell.lock() == limit) {
+        if (sellRoot == nullptr)
+            lowestSell.reset();
+
+        else {
+            auto it = sellRoot;
+            while (it -> leftChild != nullptr) {
+                it = it -> leftChild;
+            }
+            lowestSell = it;
+        }
+    }
+
+    if (side == Side::BUY && highestBUY.lock() == limit) {
+        if (buyRoot == nullptr)
+            buyRoot.reset();
+        else{
+            auto it = buyRoot;
+            while (it -> rightChild != nullptr) {
+                it = it -> rightChild
+            }
+            highestBuy = it;
+        }
+    }
 }
 
 //==============================================================================
