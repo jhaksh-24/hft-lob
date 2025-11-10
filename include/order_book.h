@@ -5,7 +5,7 @@
 #include "order.h"
 
 class Book {
-private:
+public:
     std::shared_ptr<Limit> buyRoot = nullptr;
     std::shared_ptr<Limit> sellRoot = nullptr;
 
@@ -27,13 +27,14 @@ private:
     std::shared_ptr<Limit> InsertLimit(int price, Side side);
     void RemoveLimit(std::shared_ptr<Limit> limit, Side side);
 
-public:
+
     void AddOrder(int id, int shares, int price, Side side);
     void RemoveOrder(int orderId);
     void ModifyOrder(int orderId, int newShares, int newPrice);
     void MatchOrder(std::shared_ptr<Order> order);
     void ExecuteTrade(std::shared_ptr<Order> buyOrder, 
-                        std::shared_ptr<Order> sellOrder, 
-                        int quantity);
+                      std::shared_ptr<Order> sellOrder, 
+                      int quantity);
     void PrintBook();
+    void PrintSide(std::shared_ptr<Limit> node);
 };

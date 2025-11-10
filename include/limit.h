@@ -8,7 +8,7 @@ struct Limit {
     int limitPrice;
     int size;
     int totalVolume;
-    Color color = RED;
+    Color color = Color::RED;
     
     std::weak_ptr<Limit>   parent;
     std::shared_ptr<Limit> leftChild = nullptr;
