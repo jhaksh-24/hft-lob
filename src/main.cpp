@@ -55,13 +55,14 @@ void interactiveMode(Book& book) {
 }
 
 void fileMode(Book& book, const string& filename) {
-    string filepath = "../demo_files/" + filename;
+    string filepath = "demo_files/" + filename;
     ifstream file(filepath);
     if (!file) {
-        cout << "Error: Could not open file " << filename << endl;
+        cout << "Error: Could not open file " << filepath << endl;
+        cout << "Make sure you're running from the build directory" << endl;
         return;
     }
-    
+
     string line;
     int lineNum = 0;
     

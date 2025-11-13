@@ -152,7 +152,7 @@ Load and execute pre-made test scenarios:
 
 **`basic_demo.txt`** - Simple order addition and book visualization  
 
-#### File Format
+#### File Format:**
 ```
 # Comments start with #
 # Format: Action ID Shares Price Side
@@ -162,6 +162,8 @@ A 1 100 99 B      # Add buy order
 A 2 50 101 S      # Add sell order
 P                 # Print book
 ```
+
+**Note:** When using CMake, demo files are automatically copied to the build directory.
 
 ## Matching Engine Example
 ```
@@ -245,7 +247,7 @@ This project demonstrates:
 - [x] Trade execution and reporting
 - [x] Interactive demo mode
 - [x] File-based test scenarios
-- [ ] CMake build system
+- [x] CMake build system
 - [ ] Performance benchmarking (latency p50/p99, throughput)
 - [ ] Red-Black tree balancing for guaranteed O(log n)
 - [ ] Memory pooling optimization

@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
-set(CMAKE_CXX_FLAGS_RELEASE "03 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "-03 -DNDEBUG")
 
 include_directories(include)
 
@@ -19,4 +19,6 @@ set(SOURCES
 add_executable(orderbook ${SOURCES})
 
 install(TARGETS orderbook DESTINATION bin)
+
+file(COPY demo_files DESTINATION ${CMAKE_BINARY_DIR})
 
