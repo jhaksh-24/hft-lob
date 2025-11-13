@@ -9,7 +9,6 @@
 /*
  * FindLimit - Search for a price level in the appropriate tree
  */
-
 std::shared_ptr<Limit> Book::FindLimit(int price, Side side) {
     std::shared_ptr<Limit> searchPtr = (side == Side::BUY ? buyRoot : sellRoot);
 
@@ -30,7 +29,6 @@ std::shared_ptr<Limit> Book::FindLimit(int price, Side side) {
 /*
  * InsertLimit - Create and insert a new price level into the tree
  */
-
 std::shared_ptr<Limit> Book::InsertLimit(int price, Side side) {
 
     // Currently using unbalanced tree... will correct it to use red black preferably
@@ -83,8 +81,62 @@ std::shared_ptr<Limit> Book::InsertLimit(int price, Side side) {
  * RemoveLimit - Delete an empty price level from the tree
  */
 void Book::RemoveLimit(std::shared_ptr<Limit> limit, Side side) {
-    // Removing root will be addressed
     auto parentlimit = limit -> parent.lock();
+
+    if(!parentlimit) {
+        std::shared_ptr<Limit> & root = (side == Side::BUY ? buyRoot : sellRoot);
+
+        if (!limit -> leftChild && !limit -> rightChild) {
+            root = nullptr;
+        }
+        else if (!limit->leftChild) {
+            root = limit->rightChild;
+            root->parent.reset();
+        }
+        else if (!limit->rightChild) {
+            root = limit->leftChild;
+            root->parent.reset();
+        }
+        else {
+            auto successor = limit -> rightChild;
+            while (successor -> leftChild != nullptr) {
+                successor = successor -> leftChild;
+            }
+
+            limit -> limitPrice = successor -> limitPrice;
+            limit -> size = successor -> size;
+            limit -> totalVolume = successor -> totalVolume;
+            limit -> headOrder = successor -> headOrder;
+            limit -> tailOrder = successor -> tailOrder;
+
+            RemoveLimit(successor, side);
+            return;
+        }
+
+        if (side == Side::SELL) {
+            if (sellRoot) {
+                auto it = sellRoot;
+                while (it->leftChild) it = it->leftChild;
+                lowestSell = it;
+            }
+            else {
+                lowestSell.reset();
+            }
+        }
+        if (side == Side::BUY) {
+            if (buyRoot) {
+                auto it = buyRoot;
+                while (it->rightChild) it = it->rightChild;
+                highestBuy = it;
+            }
+            else {
+                highestBuy.reset();
+            }
+        }
+
+        return;
+
+    }
 
     if (limit -> leftChild == nullptr && limit -> rightChild == nullptr) {
         if (parentlimit -> leftChild == limit) {
@@ -175,29 +227,37 @@ void Book::AddOrder(int id, int shares, int price, Side side) {
     newOrder -> entryTime = 0;
     newOrder -> eventTime = 0;
 
-    auto limit = FindLimit(price, side);
-    if (limit == nullptr) {
-        limit = InsertLimit(price, side);
-    }
-
     orderIndex[id] = newOrder;
-    newOrder -> parentLimit = limit;
 
-    if (limit -> headOrder == nullptr) {
-        limit -> headOrder = newOrder;
-        limit -> tailOrder = newOrder;
+    MatchOrder(newOrder);
+
+    if (newOrder -> shares > 0) {
+
+        auto limit = FindLimit(price, side);
+        if (limit == nullptr) {
+            limit = InsertLimit(price, side);
+        }
+        newOrder -> parentLimit = limit;
+
+        if (limit -> headOrder == nullptr) {
+            limit -> headOrder = newOrder;
+            limit -> tailOrder = newOrder;
+        }
+        else {
+            auto oldTail = limit->tailOrder.lock();
+            if (oldTail) {
+                oldTail->nextOrder = newOrder;
+                newOrder->prevOrder = oldTail;
+            }
+            limit -> tailOrder = newOrder;
+        }
+
+        limit -> size++;
+        limit -> totalVolume += newOrder -> shares;
     }
     else {
-        auto oldTail = limit->tailOrder.lock();
-        if (oldTail) {
-            oldTail->nextOrder = newOrder;
-            newOrder->prevOrder = oldTail;
-        }
-        limit -> tailOrder = newOrder;
+        orderIndex.erase(id);
     }
-
-    limit -> size++;
-    limit -> totalVolume += shares;
 }
 
 /*
@@ -254,6 +314,7 @@ void Book::RemoveOrder(int orderId) {
     order->prevOrder.reset();
     order->nextOrder = nullptr;
 }
+
 /*
  * ModifyOrder - Modify an existing order's quantity or price
  */
@@ -285,24 +346,91 @@ void Book::ModifyOrder(int orderId, int newShares, int newPrice) {
 
 /*
  * MatchOrder - Attempt to match an order against the opposite side
- * 
- * @param order The incoming order to match
  */
 void Book::MatchOrder(std::shared_ptr<Order> order) {
-    // TODO: Implement match order
+
+    std::cout << "\n>>> Matching Order #" << order->id << ": "
+        << (order->side == Side::BUY ? "BUY" : "SELL") << " "
+        << order->shares << " shares @ $" << order->price << std::endl;
+
+
+    while (order -> shares > 0) {
+        std::cout << "  → Checking opposite side..." << std::endl;
+        auto oppositeLimit = (order->side == Side::BUY ? lowestSell.lock() : highestBuy.lock());
+
+        if (!oppositeLimit || oppositeLimit->limitPrice == 0 || !oppositeLimit->headOrder) {
+            std::cout << "  → No opposite orders available" << std::endl;
+            break;
+        }
+
+        std::cout << "  → Found " << (order->side == Side::BUY ? "SELL" : "BUY")
+            << " @ $" << oppositeLimit->limitPrice
+            << " (" << oppositeLimit->totalVolume << " shares)" << std::endl;
+
+        if (order -> side == Side::BUY) {
+            if (order -> price >= oppositeLimit -> limitPrice) {
+                auto restingOrder = oppositeLimit -> headOrder;
+                int tradeQty = std::min(order -> shares, restingOrder -> shares);
+                std::cout << "  → Matching " << tradeQty << " shares..." << std::endl;
+                ExecuteTrade(order, restingOrder, tradeQty);
+                if (order->shares > 0) {
+                    std::cout << "  → " << order->shares << " shares remaining" << std::endl;
+                }
+                else {
+                    std::cout << "  → Order fully filled!" << std::endl;
+                }
+            }
+            else {
+                std::cout << "  → Prices don't cross" << std::endl;
+                break;
+            }        
+        }
+        else {
+            if (order -> price <= oppositeLimit -> limitPrice) {
+                auto restingOrder = oppositeLimit -> headOrder;
+                int tradeQty = std::min(order -> shares, restingOrder -> shares);
+                ExecuteTrade(restingOrder, order, tradeQty);
+                if (order->shares > 0) {
+                    std::cout << "  → " << order->shares << " shares remaining" << std::endl;
+                } else {
+                    std::cout << "  → Order fully filled! ✓" << std::endl;
+                }
+            }
+            else {
+                std::cout << "  → Prices don't cross" << std::endl;  // Add this
+                break;
+            }
+        }
+    }
+
+    if (order->shares > 0) {
+        std::cout << "  → Adding " << order->shares << " shares to book\n" << std::endl;
+    }
+    std::cout << std::endl;
 }
 
 /*
  * ExecuteTrade - Execute a trade between two orders
- * 
- * @param buyOrder  The buy side order
- * @param sellOrder The sell side order
- * @param quantity  Number of shares to trade
  */
 void Book::ExecuteTrade(std::shared_ptr<Order> buyOrder, 
                         std::shared_ptr<Order> sellOrder, 
                         int quantity) {
-    // TODO: Implement trade execution
+    
+    std::cout << "TRADE: " << quantity << " shares @ $" << sellOrder -> price << std::endl;
+    std::cout << "  Buyer  : Order #" << buyOrder -> id << std::endl;
+    std::cout << "  Seller : Order #" << sellOrder -> id << std::endl;
+
+    buyOrder -> shares -= quantity;
+    sellOrder -> shares -= quantity;
+
+    auto buyLimit = buyOrder -> parentLimit.lock();
+    auto sellLimit = sellOrder -> parentLimit.lock();
+
+    if (buyLimit) buyLimit -> totalVolume -= quantity;
+    if (sellLimit) sellLimit -> totalVolume -= quantity;
+
+    if (buyOrder -> shares == 0) RemoveOrder(buyOrder -> id);
+    if (sellOrder -> shares == 0) RemoveOrder(sellOrder -> id);
 }
 
 //==============================================================================
@@ -352,4 +480,3 @@ void Book::PrintSide(std::shared_ptr<Limit> node) {
               << node->size << " orders)" << std::endl;
     PrintSide(node->rightChild);
 }
-
