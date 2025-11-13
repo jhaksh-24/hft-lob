@@ -136,10 +136,7 @@ Load and execute pre-made test scenarios:
 
 #### Demo Files
 
-**`basic_test.txt`** - Simple order addition and book visualization  
-**`crossing_orders.txt`** - Demonstrates automatic order matching  
-**`partial_fills.txt`** - Shows partial order execution  
-**`stress_test.txt`** - Multiple orders with complex matching
+**`basic_demo.txt`** - Simple order addition and book visualization  
 
 #### File Format
 ```
@@ -259,7 +256,7 @@ This project demonstrates:
 
 ## Author
 
-Built by a 3rd semester student exploring systems programming and financial technology.
+Akshat Kumar Jha
 
 ## License
 
