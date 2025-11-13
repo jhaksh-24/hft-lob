@@ -75,16 +75,30 @@ hft-lob/
 
 ### Prerequisites
 - C++17 or higher
-- g++ compiler
+- CMake 3.15+ (recommended) or g++ compiler
 
-### Compile
+### Option 1: CMake (Recommended)
+```bash
+# Create build directory
+mkdir build && cd build
+
+# Configure (Debug mode)
+cmake ..
+
+# Or configure (Release mode - optimized)
+cmake -DCMAKE_BUILD_TYPE=Release ..
+
+# Build
+make
+
+# Run
+./orderbook
+```
+
+### Option 2: Direct Compilation
 ```bash
 cd src
 g++ main.cpp order_book.cpp -I../include -std=c++20 -o main
-```
-
-### Run
-```bash
 ./main
 ```
 

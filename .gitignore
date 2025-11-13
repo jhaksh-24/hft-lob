@@ -2,7 +2,6 @@
 /build/
 /cmake-build-*/
 /compile_commands.json
-main
 *.o
 *.a
 *.so
