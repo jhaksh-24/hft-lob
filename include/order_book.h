@@ -14,13 +14,6 @@ public:
 
     std::unordered_map<int, std::shared_ptr<Order>> orderIndex;
 
-    Book() {
-        buyRoot = std::make_shared<Limit>();
-        buyRoot->color = Color::BLACK;
-
-        sellRoot = std::make_shared<Limit>();
-        sellRoot->color = Color::BLACK;
-    }
 
     // Private helper functions
     std::shared_ptr<Limit> FindLimit(int price, Side side);

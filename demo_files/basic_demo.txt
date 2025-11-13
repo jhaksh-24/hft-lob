@@ -1,0 +1,22 @@
+# Test matching engine
+# Format: Action ID Shares Price Side
+# Actions: A=Add, R=Remove, M=Modify, P=Print
+
+# Setup: Add sell orders
+A 1 30 102 S
+A 2 20 103 S
+P
+
+# Aggressive buy that crosses
+A 3 50 105 B
+P
+
+# Add more orders
+A 4 100 99 B
+A 5 40 100 B
+A 6 25 101 S
+P
+
+# Aggressive sell that crosses
+A 7 80 98 S
+P
