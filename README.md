@@ -1,4 +1,4 @@
-# HFT-LOB: Low-Latency Limit Order Book
+# HFT-LOB: Low-Latency Limit Order Book 
 
 A high-performance limit order book implementation in C++ demonstrating advanced data structures and systems programming concepts.
 
